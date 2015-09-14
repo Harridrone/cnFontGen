@@ -11,7 +11,7 @@ typedef struct
 	FT_Face face;
 }ftInfo;
 
-int paddingSpace = 25;
+int paddingSpace = 30;
 int paddingHeight = 60;
 
 int main(int argc, char **argv)
@@ -48,7 +48,8 @@ int main(int argc, char **argv)
 	FT_Set_Pixel_Sizes(ft.face, 0, fontHeight);
 	g = ft.face->glyph;
 
-	for (i = 32; i < 128; ++i)
+	accumWidth += paddingSpace;
+	for (i = 33; i < 127; ++i)
 	{
 		FT_Load_Char(ft.face, i, FT_LOAD_RENDER);
 		accumWidth += g->bitmap.width + paddingSpace;
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	accumWidth += paddingSpace;
 
 	bestMiddle = (maxTop + minTop) / 2;
 	maxHei = (maxTop - minTop) + paddingHeight;
@@ -73,16 +75,16 @@ int main(int argc, char **argv)
 	outputBuffer = malloc(accumWidth*maxHei*4);
 	memset(outputBuffer, 0x00, accumWidth*maxHei * 4);
 	//accumWidth = 0;
-	for (i = 32; i < 128; ++i)
+
+	xInc += paddingSpace;
+	for (i = 33; i < 127; ++i)
 	{
 		FT_BBox  bbox;
 		FT_Glyph gly;
 		FT_Load_Char(ft.face, i, FT_LOAD_RENDER);
 		
 		printf("%c = %i \n", (char)i, g->bitmap.rows);
-
-
-		
+	
 		for (j = 0; j < g->bitmap.rows; ++j)
 		{		
 			for (k = 0; k < g->bitmap.width; ++k)
@@ -94,13 +96,18 @@ int main(int argc, char **argv)
 			}				
 		}
 
+		outputBuffer[xInc - 1] = 0xFFFF0000;
+		outputBuffer[xInc] = 0xFF000000;
+		outputBuffer[xInc + g->bitmap.width] = 0xFF000000;
+		outputBuffer[xInc + g->bitmap.width + 1] = 0xFFFF0000;
+
 		xInc += g->bitmap.width + paddingSpace;
 
 		FT_Get_Glyph(g, &gly);
 		FT_Glyph_Get_CBox(gly, FT_GLYPH_BBOX_PIXELS, &bbox);
 
-		//	outputBuffer[xInc + (g->advance.x >> 6)] = 0xFF000000;
-		outputBuffer[xInc + bbox.xMin] = 0xFF000000;
+		//outputBuffer[xInc + (g->advance.x >> 6)] = 0xFF000000;
+		//outputBuffer[xInc + bbox.xMin] = 0xFF000000;
 
 	}
 
