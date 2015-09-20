@@ -12,7 +12,12 @@ typedef struct
 }ftInfo;
 
 int paddingSpace = 30;
-int paddingHeight = 60;
+int paddingHeight = 8;
+
+int clamp(int input, int min, int max)
+{
+	return input > max ? max : input < min ? min : input;
+}
 
 int main(int argc, char **argv)
 {
@@ -23,7 +28,7 @@ int main(int argc, char **argv)
 	int k = 0;
 
 	int accumWidth = 0;
-	int fontHeight = 50;
+	int fontHeight = 35;
 	int maxHei = 0;
 	int biggestBottom = 0;
 	int bestMiddle = 0;
@@ -83,7 +88,7 @@ int main(int argc, char **argv)
 		FT_Glyph gly;
 		FT_Load_Char(ft.face, i, FT_LOAD_RENDER);
 		
-		printf("%c = %i \n", (char)i, g->bitmap.rows);
+		printf("%c = %i \n", (char)i, g->advance.x >> 6);
 	
 		for (j = 0; j < g->bitmap.rows; ++j)
 		{		
@@ -95,20 +100,22 @@ int main(int argc, char **argv)
 				outputBuffer[(((j + (maxHei / 2)) - g->bitmap_top + bestMiddle)*accumWidth) + k + xInc] = bytes;
 			}				
 		}
-
-		outputBuffer[xInc - 1] = 0xFFFF0000;
-		outputBuffer[xInc] = 0xFF000000;
-		outputBuffer[xInc + g->bitmap.width] = 0xFF000000;
-		outputBuffer[xInc + g->bitmap.width + 1] = 0xFFFF0000;
-
-		xInc += g->bitmap.width + paddingSpace;
+		
+		
 
 		FT_Get_Glyph(g, &gly);
 		FT_Glyph_Get_CBox(gly, FT_GLYPH_BBOX_PIXELS, &bbox);
+	
+		
 
-		//outputBuffer[xInc + (g->advance.x >> 6)] = 0xFF000000;
-		//outputBuffer[xInc + bbox.xMin] = 0xFF000000;
+		outputBuffer[xInc - clamp((paddingSpace / 2) - 1, bbox.xMin, (paddingSpace / 2) - 1)] = 0xFFFF0000;
+		outputBuffer[xInc - bbox.xMin] = 0xFF000000;
+		outputBuffer[xInc + bbox.xMax] = 0xFF000000;
+		outputBuffer[xInc + clamp(g->bitmap.width + (paddingSpace / 2) - 1, bbox.xMax + 1, g->bitmap.width + (paddingSpace / 2) - 1)] = 0xFFFF0000;
 
+		printf("\t xMin: %i xMax: %i \n \t width: %i \n", bbox.xMin, bbox.xMax, g->bitmap.width);
+
+		xInc += g->bitmap.width + paddingSpace;
 	}
 
 	lodepng_encode32_file("harbage.png", (char*)outputBuffer, accumWidth, maxHei);
